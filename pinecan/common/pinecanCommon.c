@@ -14,6 +14,15 @@ typedef struct {
     struct uavcan_protocol_NodeStatus *nodeStatus;
 } PinecanData;
 
+typedef struct {
+    uint8_t front;
+    uint8_t back;
+    uint8_t count;
+    CanardCANFrame buffer[RX_QUEUE_SIZE];
+} rxQueueData;
+
+static rxQueueData rxQueue = {0};
+
 static PinecanData data;
 
 static uint8_t canardMemPool[CANARD_MEM_POOL_SIZE];
@@ -334,6 +343,78 @@ void handleRxFrame(CanardCANFrame *rxFrame) {
     PINECAN_ASSERT(CANARD_OK == retVal);
 }
 
+/*
+* @brief Passes frame to CanardHandleRxFrame.
+* @param CanardCANFrame: Frame to be processed.
+* @returns : N/A
+*/
+
+// queue functions for circular buffer, included in .h
+
+bool enqueueRxQueue(const CanardCANFrame *frame) // only called inside ISR
+{
+    if (rxQueue.count >= RX_QUEUE_SIZE) return false; // queue full
+    
+    rxQueue.buffer[rxQueue.back] = *frame;     // copy entire frame
+    rxQueue.back = (rxQueue.back + 1) % RX_QUEUE_SIZE;
+    rxQueue.count++;
+
+    return true;
+}
+
+/*
+* @brief Add canard frame to queue
+* @param CanardCANFrame*: Frame to enqueue
+* @returns bool: True if successful. False if unable to push to queue
+*/
+
+CanardCANFrame* dequeueRxQueue() // only called outside ISR
+{
+    if (rxQueue.count == 0) return NULL; // queue empty
+
+    CanardCANFrame* frame = &rxQueue.buffer[rxQueue.front];
+    rxQueue.front = (rxQueue.front + 1) % RX_QUEUE_SIZE;
+    rxQueue.count--;
+
+    return frame;
+}
+
+/*
+* @brief Remove canard frame from queue
+* @param CanardCANFrame*: Frame to dequeue
+* @returns bool: True if successful. False if unable to dequeue
+*/
+
+CanardCANFrame* peekRxQueue() // only called outside ISR
+{
+    if (rxQueue.count == 0) return NULL; // queue empty
+
+    return &rxQueue.buffer[rxQueue.front];
+}
+
+/*
+* @brief View frame at front of queue
+* @param : N/A
+* @returns CanardCANFrame*: Frame at front of queue. False if queue is empty
+*/
+
+void processCanardRxQueue()
+{
+    uint8_t queueSize = rxQueue.count;
+    for (uint8_t i = 0; i < queueSize; i++) {
+        // insert canard frame here
+        CanardCANFrame* frame = dequeueRxQueue();
+        if (frame != NULL) handleRxFrame(frame);
+        return;
+    }
+}
+
+/*
+* @brief Passes front of queue to handleRxFrame and dequeues.
+* @param : N/A
+* @returns : N/A
+*/
+
 /* ============ EXTERNAL PUBLIC FUNCTION DEFINITIONS ============ */
 
 PineCAN_Status pinecan1ms(void){
@@ -342,7 +423,8 @@ PineCAN_Status pinecan1ms(void){
     uint32_t uptimeMs = getUptimeMs();
 
     PineCAN_Status retVal = PINECAN_OK;
-
+    
+    processCanardRxQueue();
     processCanardTxQueue();
 
     if(uptimeMs >= nextRunTime1Hz)

@@ -4,6 +4,10 @@
 #include "canard.h"
 #include "pinecan.h"
 
+#ifndef RX_QUEUE_SIZE 
+#define RX_QUEUE_SIZE 32
+#endif
+
 typedef struct {
     CAN_HandleTypeDef *hcan;
     CanardInstance *canard;

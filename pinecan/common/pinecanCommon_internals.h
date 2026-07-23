@@ -9,3 +9,8 @@ typedef struct {
 
 void init(CommonInitParams *initParams);
 void handleRxFrame(CanardCANFrame *rxFrame);
+bool enqueueRxQueue(const CanardCANFrame *frame);
+CanardCANFrame* dequeueRxQueue();
+void processCanardRxQueue();
+void handleRxFrame(CanardCANFrame *rxFrame);
+CanardCANFrame* peekRxQueue();
