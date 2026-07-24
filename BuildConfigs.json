@@ -12,5 +12,19 @@
             "HARDWARE_MINOR_VERSION": 0,
             "CANARD_MEM_POOL_SIZE": 4096
         }
+    },
+    "LIGHTING_rev5": {
+        "target_location": "targets/efs-can-lighting",
+        "board": "stm32l4",
+        "symbols": {
+            "NODE_NAME": "LIGHT1",
+            "NODE_ID": 71,
+            "COMMIT_HASH": 0,
+            "SOFTWARE_MAJOR_VERSION": 1,
+            "SOFTWARE_MINOR_VERSION": 0,
+            "HARDWARE_MAJOR_VERSION": 5,
+            "HARDWARE_MINOR_VERSION": 0,
+            "CANARD_MEM_POOL_SIZE": 4096
+        }
     }
 }
