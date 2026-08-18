@@ -2,19 +2,8 @@
 #include "can.h"
 #include "dma.h"
 #include "tim.h"
-#include "gpio.h"
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-#include <time.h>
-#include <stdio.h>
-
-#include <string.h>
 #include "can_manager.hpp"
-#include "pinecan_handlers.h"
-// NEW CHANGE: new lighting pipeline entry points (led_init/Select_Pattern/Generate_Leds/Push_Leds)
 #include "new_lighting_controller.hpp"
-
-/* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
@@ -22,10 +11,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-// #define ROTATE_LED
-// #define CYCLE_ONE_LED_ON
-// #define CONSTANT_COLOR
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -36,9 +21,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-extern TIM_HandleTypeDef htim6;
-static uint32_t node_id;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -49,33 +31,6 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-/**
- * @brief  Return a unique ID made out of the 96-bit STM32 UID
- * @param  id an array of size 16 to fill with the unique ID
- * @retval None
- */
-void getUniqueID(uint8_t id[16])
-{
-	uint32_t HALUniqueIDs[4];
-	// Make Unique ID out of the 96-bit STM32 UID
-	memset(id, 0, 16);
-	HALUniqueIDs[0] = HAL_GetUIDw0();
-	HALUniqueIDs[1] = HAL_GetUIDw1();
-	HALUniqueIDs[2] = HAL_GetUIDw2();
-	HALUniqueIDs[3] = HAL_GetUIDw1(); // repeating UIDw1 for this, no specific reason I chose this..
-	memcpy(id, HALUniqueIDs, 16);
-}
-
-void initializeNodeId()
-{
-	uint8_t buffer[16];
-	getUniqueID(buffer);
-	uint32_t *parts = (uint32_t *)buffer;
-	node_id = parts[0] ^ parts[1] ^ parts[2];
-}
-
-
 
 /* USER CODE END 0 */
 
@@ -105,22 +60,11 @@ int main(void)
 	/* USER CODE END SysInit */
 
 	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
 	MX_DMA_Init();
 	MX_CAN1_Init();
-	MX_TIM1_Init();
-	MX_TIM6_Init();
-	MX_TIM7_Init();
 	MX_TIM2_Init();
 
 	/* USER CODE BEGIN 2 */
-
-	HAL_TIM_Base_Start_IT(&htim6);
-	// TIM2 drives the LED PWM through CC1 DMA; its ~495 kHz update interrupt is
-	// unnecessary and would starve Debug builds.
-	HAL_TIM_Base_Start(&htim2);
-
-	initializeNodeId();
 
 	if (initCAN() != PINECAN_OK)
 	{
@@ -226,13 +170,6 @@ void SystemClock_Config(void)
 	}
 }
 /* USER CODE BEGIN 4 */
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-	// canService() (Core/Src/can.c) self-gates on HAL_GetTick() now, so no
-	// flag needs to be set here for PineCAN servicing.
-	(void)htim;
-}
 
 /* USER CODE END 4 */
 

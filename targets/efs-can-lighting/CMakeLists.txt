@@ -149,6 +149,11 @@ if(NOT EXISTS "${LIBCANARD_CHECK}")
 endif()
 
 # Add pinecan sources
+set(PINECAN_DSDL_SOURCES
+    ardupilot.indication.NotifyState.c
+    uavcan.protocol.GetNodeInfo_res.c
+    uavcan.protocol.NodeStatus.c
+)
 add_subdirectory(${ROOT_DIR}/pinecan ${CMAKE_BINARY_DIR}/pinecan)
 
 # Link directories setup
