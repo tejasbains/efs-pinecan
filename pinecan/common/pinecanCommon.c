@@ -25,15 +25,7 @@ static rxQueueData rxQueue = {0};
 
 static PinecanData data;
 
-// DEBUG-BRANCH CHANGE (see targets/efs-can-lighting/DEBUG_README.md section 1.3).
-// aligned(8) is required, not cosmetic. initPoolAllocator() takes this pointer verbatim
-// and libcanard casts every block to CanardRxState* / CanardTxQueueItem* /
-// CanardBufferBlock*, which contain 4- and 8-byte members. A uint8_t array only has
-// alignment 1, so the linker may place it on an odd address -- it did, at 0x20000AB9 in
-// the CMake rev5-release build -- and the compiler is then free to emit LDRD/STRD
-// against those struct pointers. LDRD/STRD fault on any non-word-aligned address
-// regardless of CCR.UNALIGN_TRP, which raised an UNALIGNED UsageFault (CFSR 0x01000000)
-// escalated to HardFault on the first received CAN frame.
+// libcanard stores types with 8-byte members in this pool.
 static uint8_t canardMemPool[CANARD_MEM_POOL_SIZE] __attribute__((aligned(8)));
 
 /* ============ PRIVATE FUNCTION DECLARATIONS ============ */

@@ -1,7 +1,7 @@
 # Local environments and editor metadata
 .venv/
 .idea/
-.vscode/
+/.vscode/
 .metadata/
 .settings/
 .cache/
@@ -13,7 +13,7 @@
 .project
 
 # AI/design notes and documentation are not firmware inputs
-.kiro/
+/.kiro/
 *.md
 !README.md
 !LICENSE.md

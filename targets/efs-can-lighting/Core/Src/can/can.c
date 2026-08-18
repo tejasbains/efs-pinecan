@@ -26,7 +26,6 @@
 #include "pinecan.h"
 #include "dronecan_msgs.h"
 #include "ardupilot.indication.NotifyState.h"
-#include "debug_trace.h"
 
 // can.c is the sole owner of PineCAN state; see Lighting/Lighting.md (PineCAN).
 static CanardInstance canard;
@@ -175,20 +174,11 @@ void handleNotifyState(CanardInstance *ins, CanardRxTransfer *transfer)
 
     struct ardupilot_indication_NotifyState decoded = {0};
 
-    // Reaching here proves shouldAcceptTransfer matched the NotifyState data type id
-    // and signature from the DSDL set this build actually linked against.
     const int decodeResult = (ardupilot_indication_NotifyState_decode(transfer, &decoded) != 0);
-    DBG_EV(DBG_EV_NOTIFY_RX, (uint32_t)decodeResult, transfer->data_type_id);
 
     if (decodeResult) {
-        DBG_CNT(DBG_CNT_NOTIFY_FAIL);
         return;
     }
-
-    DBG_CNT(DBG_CNT_NOTIFY_OK);
-    DBG_EV(DBG_EV_NOTIFY_STATE,
-           (uint32_t)(decoded.vehicle_state & 0xFFFFFFFFu),
-           (uint32_t)(decoded.vehicle_state >> 32));
 
     __disable_irq();
     latest_vehicle_state = decoded.vehicle_state;

@@ -1,0 +1,115 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug (ST-LINK GDB Server)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/rev5-debug/efs-can-lighting.elf",
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "arm-none-eabi-gdb",
+            "miDebuggerServerAddress": "localhost:61234",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Load program",
+                    "text": "load",
+                    "ignoreFailures": false
+                }
+            ],
+            "preLaunchTask": "Build",
+            "serverLaunchTimeout": 30000,
+            "filterStderr": true,
+            "filterStdout": false,
+            "serverStarted": "GDB\\ server\\ started",
+            "logging": {
+                "moduleLoad": false,
+                "trace": false,
+                "engineLogging": false,
+                "programOutput": true,
+                "exceptions": true
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "miDebuggerPath": "arm-none-eabi-gdb"
+            },
+            "osx": {
+                "MIMode": "gdb",
+                "miDebuggerPath": "arm-none-eabi-gdb"
+            },
+            "windows": {
+                "MIMode": "gdb",
+                "miDebuggerPath": "arm-none-eabi-gdb.exe"
+            }
+        },
+        {
+            "name": "Debug (OpenOCD)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/rev5-debug/efs-can-lighting.elf",
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "arm-none-eabi-gdb",
+            "miDebuggerServerAddress": "localhost:3333",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Reset and halt target",
+                    "text": "monitor reset halt",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Load program",
+                    "text": "load",
+                    "ignoreFailures": false
+                }
+            ],
+            "preLaunchTask": "Build",
+            "postDebugTask": null,
+            "serverLaunchTimeout": 30000,
+            "filterStderr": true,
+            "filterStdout": false,
+            "logging": {
+                "moduleLoad": false,
+                "trace": false,
+                "engineLogging": false,
+                "programOutput": true,
+                "exceptions": true
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "miDebuggerPath": "arm-none-eabi-gdb"
+            },
+            "osx": {
+                "MIMode": "gdb",
+                "miDebuggerPath": "arm-none-eabi-gdb"
+            },
+            "windows": {
+                "MIMode": "gdb",
+                "miDebuggerPath": "arm-none-eabi-gdb.exe"
+            }
+        }
+    ]
+}

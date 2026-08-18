@@ -22,11 +22,17 @@ Release/
 /REV5 Release/
 
 # AI/design notes and documentation (not required to build)
-.kiro/
+.kiro/*
+!.kiro/specs/
+.kiro/specs/*
+!.kiro/specs/efs-can-lighting-build-config/
+.kiro/specs/efs-can-lighting-build-config/*
+!.kiro/specs/efs-can-lighting-build-config/debugging.md
 *.md
 !README.md
 !LICENSE.md
 !License.md
+!.kiro/specs/efs-can-lighting-build-config/debugging.md
 *.pdf
 
 # Generated build/tooling artifacts

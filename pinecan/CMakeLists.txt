@@ -35,10 +35,14 @@ add_subdirectory(../dsdl ${CMAKE_BINARY_DIR}/dsdl) # TODO: set up clever regener
 # Consumers of pinecan automatically get libcanard linked in
 target_link_libraries(pinecan INTERFACE libcanard dsdl)
 
-# Set PINECAN_DEBUG for debug builds
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+# Keep assertions opt-in on embedded targets. STM32CubeIDE Debug does not define
+# PINECAN_DEBUG, and newlib's default __assert_func attempts formatted I/O before
+# aborting, which makes a failed transport assertion look like a dead MCU.
+option(PINECAN_ENABLE_ASSERTS "Enable PineCAN runtime assertions" OFF)
+
+if(PINECAN_ENABLE_ASSERTS)
     target_compile_definitions(pinecan INTERFACE PINECAN_DEBUG=1)
-    message("PINECAN_DEBUG enabled for Debug build")
+    message("PineCAN runtime assertions enabled")
 endif()
 
 # Validate that pinecan code is compatible with C standard

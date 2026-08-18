@@ -12,7 +12,6 @@
 
 #include "new_lighting_controller.hpp"
 #include "new_pattern_table.hpp"
-#include "debug_trace.h"
 
 namespace {
 
@@ -108,20 +107,14 @@ void led_init() {
 	std::memcpy(dma_output_buffer + BANK_OUTPUT_BUFFER_SIZE, bank_output_buffer,
 			BANK_OUTPUT_BUFFER_SIZE);
 
-	// A non-HAL_OK return here means no PWM/DMA output at all, which looks identical
-	// to a dead board. Record it rather than discarding it.
-	const HAL_StatusTypeDef dmaStatus =
-			HAL_TIM_PWM_Start_DMA(&LED_TIM, LED_TIM_CHANNEL,
-					reinterpret_cast<uint32_t *>(dma_output_buffer), DMA_OUTPUT_BUFFER_SIZE);
-	DBG_EV(DBG_EV_PWM_DMA_RESULT, dmaStatus, DMA_OUTPUT_BUFFER_SIZE);
-	(void) dmaStatus;   // DBG_EV compiles away when LIGHTING_TRACE is off
+	HAL_TIM_PWM_Start_DMA(&LED_TIM, LED_TIM_CHANNEL,
+			reinterpret_cast<uint32_t *>(dma_output_buffer), DMA_OUTPUT_BUFFER_SIZE);
 
 	// Boot default: show a valid pattern before the first CAN message.
 	Select_Pattern(TRANSITION_GROUND);
 }
 
 void Select_Pattern(uint8_t flight_state) {
-	DBG_CNT(DBG_CNT_SELECT);
 	if (flight_state >= STATE_COUNT) {
 		// Covers 0xFF (CANManager::UNRECOGNIZED_STATE) and any other
 		// out-of-range value: hold the previous appearance, ignore this call.
@@ -135,7 +128,6 @@ void Select_Pattern(uint8_t flight_state) {
 }
 
 void Generate_Leds(uint32_t tick) {
-	DBG_CNT(DBG_CNT_GENERATE);
 	update_animations(tick);
 
 	for (int i = 0; i < NUM_LEDS; ++i) {
@@ -158,7 +150,6 @@ void Generate_Leds(uint32_t tick) {
 }
 
 void Push_Leds() {
-	DBG_CNT(DBG_CNT_PUSH);
 	uint16_t offset = PADDING_SIZE;
 
 	for (int i = 0; i < NUM_LEDS; ++i) {
@@ -203,9 +194,6 @@ void Push_Leds() {
 
 void HAL_TIM_PWM_PulseFinishedHalfCpltCallback(TIM_HandleTypeDef *htim) {
 	(void) htim;
-	// Non-zero DBG_CNT_DMA_HALF/FULL is the definitive proof that the DMA stream is
-	// circulating and that these overrides won over the weak HAL versions.
-	DBG_CNT(DBG_CNT_DMA_HALF);
 	// | BANK 1 | BANK 2 |
 	//          ^ Current location -- update BANK 1
 	std::memcpy(dma_output_buffer, bank_output_buffer, BANK_OUTPUT_BUFFER_SIZE);
@@ -213,7 +201,6 @@ void HAL_TIM_PWM_PulseFinishedHalfCpltCallback(TIM_HandleTypeDef *htim) {
 
 void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim) {
 	(void) htim;
-	DBG_CNT(DBG_CNT_DMA_FULL);
 	// | BANK 1 | BANK 2 |
 	//                   ^ Current location -- update BANK 2
 	std::memcpy(dma_output_buffer + BANK_OUTPUT_BUFFER_SIZE, bank_output_buffer,

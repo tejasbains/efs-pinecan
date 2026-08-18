@@ -175,29 +175,11 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ./Lighting/Inc
 )
 
-# ======== Diagnostics ========
-# Enables the SRAM2 trace buffer in Core/Inc/debug_trace.h. Read it back with:
-#     cmake --build --preset=<preset> --target trace
-# Defaults ON for Debug builds. Defining it also replaces newlib's __assert_func with
-# a local one that records to the trace buffer instead of pulling in stdio/malloc.
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(_trace_default ON)
-else()
-    set(_trace_default OFF)
-endif()
-
-option(LIGHTING_TRACE "Record boot/ISR diagnostics into the SRAM2 trace buffer" ${_trace_default})
-
-if(LIGHTING_TRACE)
-    message("LIGHTING_TRACE enabled - trace buffer at 0x10000000")
-endif()
-
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Pinecan symbols from BuildConfig.json
     ${PINECAN_SYMBOL_DEFS}
     # Add user defined symbols
-    $<$<BOOL:${LIGHTING_TRACE}>:LIGHTING_TRACE=1>
 )
 
 # Add linked libraries
@@ -209,154 +191,31 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     # Add user defined libraries
 )
 
-# Configure clean target to remove build artifacts
-# Note: .elf and .o files are already removed by CMake's default clean target.
-# .bin/.hex are declared as real command outputs below, so CMake cleans them too.
-set_property(TARGET ${CMAKE_PROJECT_NAME}
-    APPEND PROPERTY ADDITIONAL_CLEAN_FILES
-    "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.map"
-)
-
-# ======== Binary artifacts ========
-# These are generated with add_custom_command(OUTPUT ...) rather than POST_BUILD so that
-# the .bin/.hex are first-class build outputs which other targets can depend on BY FILE.
-#
-# Do not convert these back to POST_BUILD + BYPRODUCTS. Under Ninja that attaches them to
-# the link edge as a whole, so a .hex that is stale or deleted is never regenerated, and the
-# flash target below silently programs an image that does not match the current ELF.
-# See .kiro/specs/efs-can-lighting-build-config/debugging.md
+# Make the converted images real outputs so flash cannot use a stale HEX.
 set(PINECAN_ELF $<TARGET_FILE:${CMAKE_PROJECT_NAME}>)
 set(PINECAN_BIN "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.bin")
 set(PINECAN_HEX "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.hex")
 
-# Generate .bin file (raw binary image)
 add_custom_command(
     OUTPUT ${PINECAN_BIN}
     COMMAND ${CMAKE_OBJCOPY} -O binary ${PINECAN_ELF} ${PINECAN_BIN}
-    # Target name gives build ordering; $<TARGET_FILE:...> gives the file-level
-    # dependency that actually triggers regeneration when the ELF is relinked.
     DEPENDS ${CMAKE_PROJECT_NAME} ${PINECAN_ELF}
-    COMMENT "Generating ${CMAKE_PROJECT_NAME}.bin"
     VERBATIM
 )
 
-# Generate .hex file (Intel HEX format)
 add_custom_command(
     OUTPUT ${PINECAN_HEX}
     COMMAND ${CMAKE_OBJCOPY} -O ihex ${PINECAN_ELF} ${PINECAN_HEX}
     DEPENDS ${CMAKE_PROJECT_NAME} ${PINECAN_ELF}
-    COMMENT "Generating ${CMAKE_PROJECT_NAME}.hex"
     VERBATIM
 )
 
-# Build .bin/.hex as part of a normal `cmake --build`, matching the previous POST_BUILD
-# behaviour now that they are no longer attached to the link step.
-add_custom_target(binaries ALL
-    DEPENDS ${PINECAN_BIN} ${PINECAN_HEX}
-)
+add_custom_target(binaries ALL DEPENDS ${PINECAN_BIN} ${PINECAN_HEX})
 
-# Add flash target (requires STM32_Programmer_CLI in PATH)
-# DEPENDS lists the .hex FILE, not the executable target, so the image is always
-# regenerated from the current ELF before being programmed.
+# Add flash target (requires STM32_Programmer_CLI in PATH).
 add_custom_target(flash
     COMMAND STM32_Programmer_CLI -c port=SWD -w ${PINECAN_HEX} -v -rst
     DEPENDS ${PINECAN_HEX}
     COMMENT "Flashing ${CMAKE_PROJECT_NAME}.hex to target via ST-LINK"
-    VERBATIM
-)
-
-# Read back and decode the SRAM2 trace buffer (requires LIGHTING_TRACE).
-# Connects in HOTPLUG mode and does NOT reset, so a wedged MCU can be inspected
-# in place. The ELF is passed so the decoder can resolve string pointers to text.
-find_program(PINECAN_PYTHON NAMES python3 python py)
-if(NOT PINECAN_PYTHON)
-    set(PINECAN_PYTHON python)
-endif()
-
-add_custom_target(trace
-    COMMAND ${PINECAN_PYTHON} ${CMAKE_CURRENT_LIST_DIR}/tools/read_trace.py
-            --elf $<TARGET_FILE:${CMAKE_PROJECT_NAME}>
-    COMMENT "Reading SRAM2 trace buffer via ST-LINK (no reset)"
-    USES_TERMINAL
-    VERBATIM
-)
-
-# ======== Debug / diagnostic targets ========
-# Documented in DEBUG_README.md. These exist to support the CMake-vs-CubeIDE
-# investigation and are intended to live on the debug branch; only an isolated fix
-# should be promoted to main.
-
-# Invalidate the trace buffer magic word so the next run starts from a clean buffer.
-# Useful before a test run, since SRAM2 survives a warm reset.
-add_custom_target(trace-clear
-    COMMAND STM32_Programmer_CLI -c port=SWD mode=HOTPLUG -w32 0x10000000 0x00000000
-    COMMENT "Clearing trace buffer magic at 0x10000000 (no reset)"
-    USES_TERMINAL
-    VERBATIM
-)
-
-# Flash using a HARDWARE reset instead of the software reset that plain `flash` uses.
-# STM32CubeIDE resets differently from STM32_Programmer_CLI's default, so this
-# isolates "is the failure a reset-mode artifact rather than a code difference".
-add_custom_target(flash-hardrst
-    COMMAND STM32_Programmer_CLI -c port=SWD mode=UR reset=HWrst -w ${PINECAN_HEX} -v --hardRst
-    DEPENDS ${PINECAN_HEX}
-    COMMENT "Flashing with connect-under-reset + hardware reset"
-    VERBATIM
-)
-
-# Reset the target without reprogramming, to re-run the image already in flash.
-add_custom_target(reset
-    COMMAND STM32_Programmer_CLI -c port=SWD mode=HOTPLUG --hardRst
-    COMMENT "Hardware-resetting the target (no reprogramming)"
-    USES_TERMINAL
-    VERBATIM
-)
-
-# Section/memory breakdown of the current ELF.
-add_custom_target(size
-    COMMAND ${CMAKE_SIZE} -A -x $<TARGET_FILE:${CMAKE_PROJECT_NAME}>
-    DEPENDS ${CMAKE_PROJECT_NAME}
-    COMMENT "Section sizes for ${CMAKE_PROJECT_NAME}.elf"
-    VERBATIM
-)
-
-# Reports whether newlib assert/stdio/malloc got linked in, and which object provides
-# __assert_func. This is the check that identified the live PINECAN_ASSERT in Debug
-# builds: if __assert_func resolves to libc rather than main.cpp.obj, a tripped assert
-# hangs the MCU invisibly.
-add_custom_target(symcheck
-    COMMAND ${PINECAN_PYTHON} ${CMAKE_CURRENT_LIST_DIR}/tools/elf_tools.py symcheck
-            $<TARGET_FILE:${CMAKE_PROJECT_NAME}>
-            --map ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.map
-    DEPENDS ${CMAKE_PROJECT_NAME}
-    COMMENT "Checking for unwanted libc pull-in (assert/stdio/malloc)"
-    USES_TERMINAL
-    VERBATIM
-)
-
-# Full disassembly listing, for diffing this image against the STM32CubeIDE one.
-add_custom_target(listing
-    COMMAND ${PINECAN_PYTHON} ${CMAKE_CURRENT_LIST_DIR}/tools/elf_tools.py listing
-            $<TARGET_FILE:${CMAKE_PROJECT_NAME}>
-            --out ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.list
-    DEPENDS ${CMAKE_PROJECT_NAME}
-    COMMENT "Generating disassembly listing"
-    VERBATIM
-)
-
-# Compare this image against a reference ELF (the STM32CubeIDE build) function by
-# function, ignoring addresses. Reports functions missing from either side and any
-# whose instruction sequence differs. Override the reference with -DPINECAN_REF_ELF=...
-if(NOT DEFINED PINECAN_REF_ELF)
-    set(PINECAN_REF_ELF "${CMAKE_CURRENT_LIST_DIR}/REV5 Debug/${CMAKE_PROJECT_NAME}.elf")
-endif()
-
-add_custom_target(compare-ref
-    COMMAND ${PINECAN_PYTHON} ${CMAKE_CURRENT_LIST_DIR}/tools/elf_tools.py compare
-            $<TARGET_FILE:${CMAKE_PROJECT_NAME}> "${PINECAN_REF_ELF}"
-    DEPENDS ${CMAKE_PROJECT_NAME}
-    COMMENT "Comparing against the STM32CubeIDE reference ELF"
-    USES_TERMINAL
     VERBATIM
 )

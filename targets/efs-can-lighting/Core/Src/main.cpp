@@ -13,9 +13,6 @@
 #include "pinecan_handlers.h"
 // NEW CHANGE: new lighting pipeline entry points (led_init/Select_Pattern/Generate_Leds/Push_Leds)
 #include "new_lighting_controller.hpp"
-// RAM2 trace buffer. All DBG_* macros compile to nothing unless LIGHTING_TRACE is
-// defined, so the STM32CubeIDE build is unaffected. See Core/Inc/debug_trace.h.
-#include "debug_trace.h"
 
 /* USER CODE END Includes */
 
@@ -99,75 +96,39 @@ int main(void)
 	HAL_Init();
 
 	/* USER CODE BEGIN Init */
-	// Claim the trace buffer before anything else can fault.
-	DBG_INIT();
-	DBG_EV(DBG_EV_BOOT, DBG_TRACE->boot_count, 0);
-	DBG_EV(DBG_EV_HAL_INIT_DONE, 0, 0);
 	/* USER CODE END Init */
 
 	/* Configure the system clock */
 	SystemClock_Config();
 
 	/* USER CODE BEGIN SysInit */
-	DBG_EV(DBG_EV_CLOCK_CONFIG_DONE, SystemCoreClock, 0);
 	/* USER CODE END SysInit */
 
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
-	DBG_EV(DBG_EV_GPIO_INIT_DONE, 0, 0);
 	MX_DMA_Init();
-	DBG_EV(DBG_EV_DMA_INIT_DONE, 0, 0);
 	MX_CAN1_Init();
-	DBG_EV(DBG_EV_CAN1_INIT_DONE, 0, 0);
 	MX_TIM1_Init();
-	DBG_EV(DBG_EV_TIM1_INIT_DONE, 0, 0);
 	MX_TIM6_Init();
-	DBG_EV(DBG_EV_TIM6_INIT_DONE, 0, 0);
 	MX_TIM7_Init();
-	DBG_EV(DBG_EV_TIM7_INIT_DONE, 0, 0);
 	MX_TIM2_Init();
-	DBG_EV(DBG_EV_TIM2_INIT_DONE, 0, 0);
-	// here
 
 	/* USER CODE BEGIN 2 */
 
-	{
-		const HAL_StatusTypeDef s6 = HAL_TIM_Base_Start_IT(&htim6);
-		DBG_EV(DBG_EV_TIM6_START, s6, 0);
-		(void) s6;
-		// htim2 is the WS28xx PWM carrier (period 96 @ 48 MHz). Starting it with _IT
-		// enables a ~495 kHz update ISR that HAL_TIM_IRQHandler cannot complete inside
-		// one period at -O0, which starves the CPU before main() reaches led_init().
-		// The LED DMA is fed by the TIM2 CC1 DMA request (CC1DE), not the update
-		// interrupt, so UIE is not needed here. HAL_TIM_PWM_Start_DMA() enables the
-		// counter itself. See .kiro/specs/efs-can-lighting-build-config/debugging.md
-		const HAL_StatusTypeDef s2 = HAL_TIM_Base_Start(&htim2);
-		DBG_EV(DBG_EV_TIM2_START, s2, 0);
-		(void) s2;
-	}
+	HAL_TIM_Base_Start_IT(&htim6);
+	// TIM2 drives the LED PWM through CC1 DMA; its ~495 kHz update interrupt is
+	// unnecessary and would starve Debug builds.
+	HAL_TIM_Base_Start(&htim2);
 
 	initializeNodeId();
-	DBG_EV(DBG_EV_NODE_ID_DONE, node_id, 0);
 
-	DBG_EV(DBG_EV_INITCAN_ENTER, 0, 0);
+	if (initCAN() != PINECAN_OK)
 	{
-		// Capture the status before branching, so a failure is still visible in the
-		// trace even though Error_Handler() never returns.
-		const PineCAN_Status canStatus = initCAN();
-		DBG_EV(DBG_EV_INITCAN_RESULT, canStatus, 0);
-
-		if (canStatus != PINECAN_OK)
-		{
-			Error_Handler();
-		}
+		Error_Handler();
 	}
 
-	// initialise the LED PWM/DMA output (bank/DMA buffers, HAL_TIM_PWM_Start_DMA)
-	// and load the GROUND pattern as the boot default, so the board shows a
-	// valid pattern before the first CAN message arrives.
-	DBG_EV(DBG_EV_LED_INIT_ENTER, 0, 0);
+	// initialise the LED PWM/DMA output and set GND as default
 	led_init();
-	DBG_EV(DBG_EV_LED_INIT_DONE, 0, 0);
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
@@ -176,8 +137,6 @@ int main(void)
 	bool new_data = false;
 	bool stay_in_loop = true;
 	uint8_t flight_state = 0;
-
-	DBG_EV(DBG_EV_MAIN_LOOP_ENTER, 0, 0);
 
 	while (1)
 	{
@@ -190,34 +149,15 @@ int main(void)
 		
 			static uint32_t lastLedTick = 0;
 			static uint32_t tick = 0;
-			DBG_CNT(DBG_CNT_INNER_LOOP);
-
-			// Proof-of-life: shows whether the main loop progresses at all, and how
-			// many iterations it manages per 500 ms of HAL_GetTick().
-			{
-				static uint32_t lastBeatTick = 0;
-				static uint32_t beatIters = 0;
-				beatIters++;
-				if (HAL_GetTick() - lastBeatTick >= 500)
-				{
-					lastBeatTick = HAL_GetTick();
-					DBG_EV(DBG_EV_HEARTBEAT, lastBeatTick, beatIters);
-					beatIters = 0;
-				}
-			}
-
 			if (HAL_GetTick() - lastLedTick >= 20)
 			{
 				lastLedTick = HAL_GetTick();
-				if (tick == 0) { DBG_EV(DBG_EV_FIRST_GENERATE, lastLedTick, 0); }
 				Generate_Leds(tick); // advance animations, expand active zones into colour_buffer
-				if (tick == 0) { DBG_EV(DBG_EV_FIRST_PUSH, lastLedTick, 0); }
 				Push_Leds();		 // bit-encode colour_buffer into the DMA-streamed bank buffer
 				tick++;
 			}
 
 			// Service PineCAN housekeeping (1ms tick-gated pinecan1ms call)
-			DBG_CNT(DBG_CNT_SERVICE);
 			CANManager::service();
 
 			// Re-read the cache each inner iteration so new CAN data is visible
@@ -228,9 +168,6 @@ int main(void)
 
 			if (new_data)
 			{
-				DBG_EV(DBG_EV_STATE_CHANGED,
-					   (uint32_t)(raw_vehicle_state & 0xFFFFFFFFu),
-					   (uint32_t)(raw_vehicle_state >> 32));
 				stay_in_loop = false;
 			}
 		}
@@ -238,8 +175,6 @@ int main(void)
 		// read cache and decode — gives us the current flight state
 		flight_state = interpretVehicleState(raw_vehicle_state);
 
-		// a = flight_state; 0xFF is UNRECOGNIZED_STATE, which Select_Pattern ignores
-		DBG_EV(DBG_EV_SELECT_PATTERN, flight_state, (uint32_t)(raw_vehicle_state & 0xFFFFFFFFu));
 		Select_Pattern(flight_state);
 
 		new_data = false;
