@@ -1,5 +1,85 @@
 # Lighting Engine — Patterns & Board Configs
 
+## Build and flash setup
+
+The lighting target is a CMake project inside the larger `efs-pinecan`
+repository. It depends on the shared `pinecan/` and `dsdl/` directories, so keep
+the complete repository checked out and initialize its submodules before the
+first build:
+
+```powershell
+git submodule update --init --recursive
+```
+
+The available configure and build presets are:
+
+| Board | Debug | Release |
+|---|---|---|
+| Revision 4 | `rev4-debug` | `rev4-release` |
+| Revision 5 | `rev5-debug` | `rev5-release` |
+
+The configure preset and build preset must always match.
+
+### VS Code
+
+Install these VS Code extensions:
+
+- **CMake Tools** by Microsoft (`ms-vscode.cmake-tools`)
+- **STM32CubeIDE for Visual Studio Code** by STMicroelectronics
+
+Either open `targets/efs-can-lighting` directly with **File → Open Folder**, or
+keep the monorepo root open and add the following to the root
+`.vscode/settings.json`:
+
+```json
+{
+    "cmake.sourceDirectory": "${workspaceFolder}/targets/efs-can-lighting",
+    "cmake.useCMakePresets": "always"
+}
+```
+
+After opening the workspace:
+
+1. Run **CMake: Select Configure Preset** from the Command Palette and choose the
+   required board/build combination, for example `rev5-debug`.
+2. Run **CMake: Configure**.
+3. Run **CMake: Select Build Preset** and choose the same preset selected in
+   step 1, for example `rev5-debug`.
+4. Run **CMake: Build**. Use the CMake Tools command, not the STM32 extension's
+   Build button.
+5. To program the board, run **CMake: Build Target** and select `flash`.
+
+For `rev5-debug`, the build produces:
+
+```text
+build/rev5-debug/efs-can-lighting.elf
+build/rev5-debug/efs-can-lighting.hex
+build/rev5-debug/efs-can-lighting.bin
+```
+
+The other presets use the corresponding directory under `build/`.
+
+### Command line
+
+Run CMake from the lighting target directory:
+
+```powershell
+cd targets/efs-can-lighting
+cmake --preset rev5-debug
+cmake --build --preset rev5-debug
+```
+
+Replace `rev5-debug` in both commands with the required preset. To build and
+flash through ST-LINK, run:
+
+```powershell
+cmake --build --preset rev5-debug --target flash
+```
+
+Both workflows require CMake, Ninja, and the Arm GNU toolchain
+(`arm-none-eabi-gcc`) to be available. Flashing also requires
+`STM32_Programmer_CLI` on `PATH`.
+
 This folder contains the data-driven lighting engine for the PineCAN LED board.
 It replaces the old per-LED class hierarchy (`led`/`sk6812`/`ws2812`/
 `lighting_controller`/`*_control_state_classes`) with three moving parts:
