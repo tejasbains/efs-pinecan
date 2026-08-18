@@ -1,5 +1,39 @@
 # Lighting Engine — Patterns & Board Configs
 
+## Program file reference
+
+These are the files most relevant when reviewing changes to the lighting
+program. The remaining `Core` files are primarily STM32-generated peripheral,
+startup, and support code.
+
+- `Core/Src/main.cpp` — Application entry point. Initializes CAN, DMA, and the
+  LED timer, services PineCAN, detects vehicle-state changes, selects a lighting
+  pattern, and generates/pushes an LED frame every 20 ms.
+- `Core/Inc/can_manager.hpp` and `Core/Src/can_manager.cpp` — The
+  transport-independent CAN decoding layer. It forwards CAN servicing and
+  cached-state reads to `can.c`, detects state changes, and maps the raw
+  NotifyState bitmask to a lighting state.
+- `Core/Src/can/can.c` (with `Core/Inc/can/can.h`) — CAN peripheral and PineCAN
+  integration. It initializes PineCAN, runs its periodic service, decodes
+  NotifyState messages in the receive handler, and safely caches the latest raw
+  vehicle state for the main loop.
+- `Lighting/Src/new_lighting_controller.cpp` (with
+  `Lighting/Inc/new_lighting_controller.hpp`) — LED output engine. It owns the
+  animation state and LED buffers, expands zones into physical LED colours,
+  encodes RGB/RGBW data, and streams it through PWM/DMA.
+- `Lighting/Src/new_pattern_table.cpp` (with
+  `Lighting/Inc/new_pattern_table.hpp`) — Lighting definitions for each vehicle
+  state. This is the main file to edit for colours, brightness, active zones,
+  and animations.
+- `Lighting/Inc/new_pattern_types.hpp` — Data structures and enums used to
+  describe solid, breathing, and strobing zone appearances.
+- `Lighting/Inc/conversions.hpp` and `Lighting/Src/conversions.cpp` — Shared
+  colour values plus the lighting-state and control-domain enums used by both
+  CAN decoding and the LED engine.
+- `Lighting/Inc/new_rev4_config.hpp` and `Lighting/Inc/new_rev5_config.hpp` —
+  Board-specific LED counts, chip types, zone-to-LED mappings, buffer sizes, and
+  timer settings. The build selects the appropriate revision.
+
 ## Build and flash setup
 
 The lighting target is a CMake project inside the larger `efs-pinecan`

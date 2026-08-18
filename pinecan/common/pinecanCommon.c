@@ -25,7 +25,8 @@ static rxQueueData rxQueue = {0};
 
 static PinecanData data;
 
-// libcanard stores types with 8-byte members in this pool.
+// libcanard stores types with 8-byte members in this pool
+// aligned(8) added in PineCan LED
 static uint8_t canardMemPool[CANARD_MEM_POOL_SIZE] __attribute__((aligned(8)));
 
 /* ============ PRIVATE FUNCTION DECLARATIONS ============ */
