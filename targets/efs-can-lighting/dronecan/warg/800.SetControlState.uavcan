@@ -1,0 +1,4 @@
+#Set the ControlState of a lighting board.
+#This is the interface for controlling the lighting of the LED boards.
+
+uint8 controlState

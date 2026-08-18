@@ -1,4 +1,42 @@
-.venv
-.vscode
-.metadata
+# Local environments and editor metadata
+.venv/
+.idea/
+.vscode/
+.metadata/
+.settings/
+.cache/
+.clangd
+*.iml
+*.launch
+.cproject
+.mxproject
+.project
+
+# AI/design notes and documentation are not firmware inputs
+.kiro/
+*.md
+!README.md
+!LICENSE.md
+!License.md
+*.pdf
+
+# Generated build and tooling artifacts
 build/
+build-*/
+cmake-build-*/
+Debug/
+Release/
+REV* Debug/
+REV* Release/
+compile_commands.json
+__pycache__/
+*.py[cod]
+
+# This repository only accepts new firmware under the lighting target
+targets/*
+!targets/efs-can-lighting/
+
+# Stray files/directories from the standalone lighting checkout
+targets/efs-can-lighting/git
+targets/efs-can-lighting/.gitmodules
+targets/efs-can-lighting/pinecan_linked_folders/

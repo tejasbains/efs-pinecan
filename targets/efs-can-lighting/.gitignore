@@ -1,0 +1,43 @@
+# Metadata
+.metadata/
+.idea/
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+.settings/
+.clangd
+.cproject
+.mxproject
+.project
+*.iml
+*.launch
+
+Debug/
+.Debug/
+Release/
+
+/REV4 Debug/
+/REV4 Release/
+/REV5 Debug/
+/REV5 Release/
+
+# AI/design notes and documentation (not required to build)
+.kiro/
+*.md
+!README.md
+!LICENSE.md
+!License.md
+*.pdf
+
+# Generated build/tooling artifacts
+cmake-build-*/
+/build/
+compile_commands.json
+.cache/
+__pycache__/
+*.py[cod]
+
+# Empty linked-folder placeholders and stray checkout artifacts
+pinecan_linked_folders/
+/git
+/.gitmodules

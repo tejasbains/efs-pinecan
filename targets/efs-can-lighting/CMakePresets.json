@@ -1,0 +1,64 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "default",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+		    "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
+            "cacheVariables": {
+            }
+        },
+        {
+            "name": "rev4-debug",
+            "inherits": "default",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "PINECAN_CONFIG_KEY": "LIGHTING_rev4"
+            }
+        },
+        {
+            "name": "rev4-release",
+            "inherits": "default",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "PINECAN_CONFIG_KEY": "LIGHTING_rev4"
+            }
+        },
+        {
+            "name": "rev5-debug",
+            "inherits": "default",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "PINECAN_CONFIG_KEY": "LIGHTING_rev5"
+            }
+        },
+        {
+            "name": "rev5-release",
+            "inherits": "default",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "PINECAN_CONFIG_KEY": "LIGHTING_rev5"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "rev4-debug",
+            "configurePreset": "rev4-debug"
+        },
+        {
+            "name": "rev4-release",
+            "configurePreset": "rev4-release"
+        },
+        {
+            "name": "rev5-debug",
+            "configurePreset": "rev5-debug"
+        },
+        {
+            "name": "rev5-release",
+            "configurePreset": "rev5-release"
+        }
+    ]
+}
