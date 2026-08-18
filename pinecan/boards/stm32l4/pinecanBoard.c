@@ -76,9 +76,6 @@ bool processTxMessage(const CanardCANFrame *txFrame) {
 
 /* ============ EXTERNAL PUBLIC FUNCTION DEFINITIONS ============ */
 
-// TODO: compare to const int16_t rx_res = canardSTM32Recieve(hcan, CAN_RX_FIFO0, &rx_frame); again
-// Can think abt support for multiple rx fifos (this would come with some smart stuff with setting up the filters correctly for that as well)
-// Also even though we can use our own rx fifo queue here, we can also just use the fact that stm32 already has an rx fifo of length 3 (and its in hardware hooray)
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
     CAN_RxHeaderTypeDef rxHeader = {0};
@@ -104,8 +101,9 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
         // assume a single interface
         rxFrame.iface_id = 0;
-
-        handleRxFrame(&rxFrame); // TODO: this rx frame is deleted after this function
+        
+        // add frame from hardware queue to software queue
+        enqueueRxQueue(&rxFrame);
     }
 }
 
