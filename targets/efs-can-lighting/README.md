@@ -1,6 +1,6 @@
-# Lighting Engine — Patterns & Board Configs
+# PineCAN LED README
 
-## Program file reference
+## list of relevant files for the PR
 
 These are the files most relevant when reviewing changes to the lighting
 program. The remaining `Core` files are primarily STM32-generated peripheral,
@@ -33,6 +33,10 @@ startup, and support code.
 - `Lighting/Inc/new_rev4_config.hpp` and `Lighting/Inc/new_rev5_config.hpp` —
   Board-specific LED counts, chip types, zone-to-LED mappings, buffer sizes, and
   timer settings. The build selects the appropriate revision.
+- `../../pinecan/common/pinecanCommon.c` and `../../pinecan/CMakeLists.txt` —
+  Shared PineCAN fixes identified while debugging this target: the libcanard
+  memory pool is explicitly aligned to 8 bytes, and runtime assertions are now
+  opt-in rather than enabled automatically for Debug builds.
 
 ## Build and flash setup
 
