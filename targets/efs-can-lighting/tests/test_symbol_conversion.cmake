@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 # Load BuildConfig.json
-get_filename_component(ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+get_filename_component(ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 set(PINECAN_CONFIG_FILE "${ROOT_DIR}/BuildConfigs.json")
 
 if(NOT EXISTS "${PINECAN_CONFIG_FILE}")

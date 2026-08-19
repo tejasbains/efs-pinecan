@@ -2,7 +2,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-get_filename_component(ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+get_filename_component(ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 
 set(PINECAN_CONFIG_FILE "${ROOT_DIR}/BuildConfigs.json")
 file(READ "${PINECAN_CONFIG_FILE}" _configs_json)
@@ -16,7 +16,7 @@ string(JSON _has_key ERROR_VARIABLE _json_err
 
 if(_json_err)
     message("Correctly detected missing config key: ${PINECAN_CONFIG_KEY}")
-else
+else()
     message(FATAL_ERROR "Failed to detect missing config key")
 endif()
 
@@ -36,7 +36,7 @@ string(JSON _target_location GET "${_cfg}" target_location)
 
 if(NOT _target_location STREQUAL "targets/efs-can-lighting")
     message("Correctly detected wrong target_location: '${_target_location}' != 'targets/efs-can-lighting'")
-else
+else()
     message(FATAL_ERROR "Failed to detect wrong target_location")
 endif()
 

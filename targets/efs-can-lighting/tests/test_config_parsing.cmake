@@ -4,7 +4,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 # Repo root path
-get_filename_component(ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+get_filename_component(ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 
 # Load BuildConfig.json
 set(PINECAN_CONFIG_FILE "${ROOT_DIR}/BuildConfigs.json")
