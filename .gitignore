@@ -2,8 +2,6 @@
 .venv/
 .idea/
 /.vscode/*
-!/.vscode/settings.json
-!/.vscode/tasks.json
 .metadata/
 .settings/
 .cache/
